@@ -1,206 +1,77 @@
 <!DOCTYPE html>
+
 <html lang="ja">
-<br><br><br><br><head>
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MacOS風ホバーアイコン</title>
+    <title>デジタル時計</title>
     <style>
         body {
             display: flex;
+            justify-content: center;
+            align-items: center;
             height: 100vh;
-            background-color: #f0f0f0;
-            position: relative;
-            flex-direction: column;
-          　align-items:flex-start;
+            background-color: #222;
+            color: black;
+            font-family: 'Arial', sans-serif;
+            margin: 0;
         }
-        
-        .dock {
-            display: flex;
-            gap: 10px;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.7);
-            border-radius: 15px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-            position: relative;
-        }
-        
-        .icon-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 50px;
-            height: 50px;
-            background-color: white;
+        .clock {
+            font-size: 6rem;
+            font-weight: bold;
+            padding: 40px;
             border-radius: 10px;
-            transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .icon-container:hover, .icon-container.selected {
-            transform: scale(1.5) translateY(-10px);
-            transition: transform 0.1s ease-in-out;
-        }
-        .icon {
-            width: 80%;
-            height: 80%;
-        }
-        .edit-button {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 50px;
-            height: 50px;
-            background-color: #007bff;
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 30px;
-            cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-        }
-        .edit-panel {
-            position: fixed;
-            bottom: -100px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: white;
-            padding: 10px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-            transition: bottom 0.3s ease-out;
-            display: flex;
-            gap: 10px;
-        }
-        .edit-panel input {
-            width: 200px;
-            padding: 5px;
-        }
-        .edit-panel button {
-            padding: 5px 10px;
-            cursor: pointer;
-        }
-        .site-name-box {
-            position: absolute;
-            bottom: 60px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
-            display: none;
-            font-size: 14px;
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <div class="dock" id="dock"></div>
-    <div class="edit-button" onclick="toggleEditPanel()">+</div>
-    
-    <div class="edit-panel" id="edit-panel">
-        <select id="icon-select"></select>
-        <input type="text" id="link-input" placeholder="新しいURLを入力">
-        <button onclick="updateLink()">変更</button>
-    </div>
-    
-    <div class="site-name-box" id="site-name-box"></div>
-    
+    <div class="clock" id="clock">00:00:00</div>
     <script>
-        let selectedIndex = 0;
-        let keyPressInterval = null;
-        
-        function saveLinks(links) {
-            localStorage.setItem("iconLinks", JSON.stringify(links));
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('clock').textContent = `${hours}:${minutes}:${seconds}`;
         }
-        
-        function loadLinks() {
-            return JSON.parse(localStorage.getItem("iconLinks")) || Array(20).fill("https://google.com");
-        }
-        
-        function renderIcons() {
-            let dock = document.getElementById("dock");
-            dock.innerHTML = "";
-            let links = loadLinks();
-            links.forEach((url, i) => {
-                let faviconUrl = new URL(url);
-                dock.innerHTML += `
-                    <a href="${url}" target="_blank" class="icon-link" data-index="${i}" onmouseover="showSiteName(event, '${url}')" onmouseout="hideSiteName()">
-                        <div class="icon-container" id="icon-${i}">
-                            <img src="${faviconUrl.origin}/favicon.ico" alt="Icon" class="icon">
-                        </div>
-                    </a>
-                `;
-            });
-            highlightSelected();
-        }
-        
-        function showSiteName(event, url) {
-            let siteNameBox = document.getElementById("site-name-box");
-            siteNameBox.textContent = new URL(url).hostname;
-            siteNameBox.style.display = "block";
-            siteNameBox.style.left = `${event.clientX}px`;
-        }
-        
-        function hideSiteName() {
-            document.getElementById("site-name-box").style.display = "none";
-        }
-        
-        function renderOptions() {
-            let select = document.getElementById("icon-select");
-            select.innerHTML = "";
-            for (let i = 0; i < 20; i++) {
-                select.innerHTML += `<option value="${i}">アイコン ${i + 1}</option>`;
-            }
-        }
-        
-        function highlightSelected() {
-            document.querySelectorAll(".icon-container").forEach(el => el.classList.remove("selected"));
-            let selectedIcon = document.getElementById(`icon-${selectedIndex}`);
-            if (selectedIcon) {
-                selectedIcon.classList.add("selected");
-                showSiteName({ clientX: selectedIcon.getBoundingClientRect().left }, loadLinks()[selectedIndex]);
-            }
-        }
-        
-        function handleKeyDown(event) {
-            if (keyPressInterval) return;
-            keyPressInterval = setInterval(() => {
-                if (event.key === "ArrowRight") {
-                    selectedIndex = (selectedIndex + 1) % 20;
-                } else if (event.key === "ArrowLeft") {
-                    selectedIndex = (selectedIndex - 1 + 20) % 20;
-                }
-                highlightSelected();
-            }, 100);
-        }
-        
-        function handleKeyUp() {
-            clearInterval(keyPressInterval);
-            keyPressInterval = null;
-        }
-        
-        function toggleEditPanel() {
-            let panel = document.getElementById("edit-panel");
-            panel.style.bottom = panel.style.bottom === "10px" ? "-100px" : "10px";
-        }
-        
-        function updateLink() {
-            let newUrl = document.getElementById("link-input").value;
-            if (newUrl) {
-                let links = loadLinks();
-                links[selectedIndex] = newUrl;
-                saveLinks(links);
-                renderIcons();
-            }
-        }
-        
-        document.addEventListener("DOMContentLoaded", () => {
-            renderIcons();
-            renderOptions();
-        });
-        document.addEventListener("keydown", handleKeyDown);
-        document.addEventListener("keyup", handleKeyUp);
+        setInterval(updateClock, 1000);
+        updateClock(); // 初回実行
     </script>
 </body>
- 
+</html>
+
+<html>
+<head>
+    <script language="javascript" type="text/javascript">
+        function OnButtonClick() {var url = "https://google.com/search?q=" + document.searchform.keyword.value;window.open(url, '_blank');}
+        function OnKeyPress(code){if(13 === code){OnButtonClick();}}
+    </script>
+</head>
+<body>
+    <form name="searchform">
+<input id="keyword" class="textbox-3"placeholder="Googleで検索" type="text" name="keyword" size="20" value="" onkeypress="OnKeyPress(event.keyCode);">
+        
+    </form>
+  <style>
+    .textbox-3 {
+    align-items: center;
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #d2d2d2;
+    border-radius: 25px;
+    background: #f7f7f7;
+    color: #333;
+    font-size: 1em;
+    line-height: 1.5;
+    align-self: flex-start;
+}
+   
+  </style>
+</body>
+</html>
 <br>
 <html lang="ja">
 <head>
@@ -214,9 +85,195 @@
         <textarea id="noteInput" placeholder="ここにメモを入力"></textarea>
     </div>
     <div id="noteContainer"></div>
-
-    <script src="scripts.js"></script>
+　　 <script src="scripts.js"></script>
+  
 </body>
 </html>
-  
+  <br><br><br>
 </html>
+
+<html lang="ja">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MacOS風ホバーアイコン</title>
+    <style>
+        body {
+            display: flex;
+            height: 100vh;
+            background-color: #f0f0f0;
+            position: relative;
+            flex-direction: column;
+         }
+        
+        .dock {
+            display: flex;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            position: relative;
+            background-color: #f5f5f5;
+        }
+        
+        .icon-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 50px;
+            height: 50px;
+            background-color: white;
+            border-radius: 10px;
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .icon-container:hover, .icon-container.selected {
+            transform: scale(1.5) translateY(-10px);
+            transition: transform 0.1s ease-in-out;
+        }
+        .icon {
+            width: 80%;
+            height: 80%;
+        }
+
+        .edit-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background-color: #ff5722;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .edit-modal {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            transition: bottom 0.3s ease;
+        }
+        .edit-modal.active {
+            bottom: 20px;
+        }
+    </style>
+<body>
+    <div class="dock" id="dock"></div>
+    <div class="edit-button" id="editButton">+</div>
+    <div class="edit-modal" id="editModal">
+        <input type="text" id="linkInput" placeholder="URLを入力">
+        <input type="file" id="faviconInput" accept="image/*">
+        <button onclick="saveLink()">保存</button>
+    </div>
+
+    <script>
+        let selectedIndex = 0;
+        let isHoldingKey = false;
+        let editMode = false;
+
+        function loadLinks() {
+            return JSON.parse(localStorage.getItem("iconLinks")) || Array(24).fill("https://google.com");
+        }
+
+        function loadFavicons() {
+            return JSON.parse(localStorage.getItem("iconFavicons")) || {};
+        }
+
+        function renderIcons() {
+            let dock = document.getElementById("dock");
+            dock.innerHTML = "";
+            let links = loadLinks();
+            let favicons = loadFavicons();
+            links.forEach((url, i) => {
+                let favicon = favicons[i] || `${new URL(url).origin}/favicon.ico`;
+                dock.innerHTML += `
+                    <a href="${url}" target="_blank" class="icon-link" data-index="${i}">
+                        <div class="icon-container" id="icon-${i}">
+                            <img src="${favicon}" alt="Icon" class="icon">
+                        </div>
+                    </a>
+                `;
+            });
+            highlightSelected();
+        }
+
+        function highlightSelected() {
+            document.querySelectorAll(".icon-container").forEach((icon, index) => {
+                icon.classList.toggle("selected", index === selectedIndex);
+            });
+        }
+
+        function moveSelection(direction) {
+            let icons = document.querySelectorAll(".icon-container");
+            if (direction === "right") {
+                selectedIndex = (selectedIndex + 1) % icons.length;
+            } else if (direction === "left") {
+                selectedIndex = (selectedIndex - 1 + icons.length) % icons.length;
+            }
+            highlightSelected();
+        }
+
+        function handleKeyDown(event) {
+            if (isHoldingKey) return;
+            isHoldingKey = true;
+
+            if (event.key === "ArrowRight") {
+                moveSelection("right");
+            } else if (event.key === "ArrowLeft") {
+                moveSelection("left");
+            } else if (event.key === " ") {
+                let links = loadLinks();
+                window.open(links[selectedIndex], "_blank");
+            }
+
+            setTimeout(() => {
+                isHoldingKey = false;
+            }, 70);
+        }
+
+        function toggleEditModal() {
+            let modal = document.getElementById("editModal");
+            modal.classList.toggle("active");
+        }
+
+        function saveLink() {
+            let links = loadLinks();
+            let favicons = loadFavicons();
+            let input = document.getElementById("linkInput").value;
+            let file = document.getElementById("faviconInput").files[0];
+            
+            if (input) {
+                links[selectedIndex] = input;
+            }
+            
+            if (file) {
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    favicons[selectedIndex] = e.target.result;
+                    localStorage.setItem("iconFavicons", JSON.stringify(favicons));
+                    renderIcons();
+                };
+                reader.readAsDataURL(file);
+            }
+            
+            localStorage.setItem("iconLinks", JSON.stringify(links));
+            renderIcons();
+        }
+
+        document.addEventListener("keydown", handleKeyDown);
+        document.getElementById("editButton").addEventListener("click", toggleEditModal);
+        document.addEventListener("DOMContentLoaded", renderIcons);
+    </script>
+</body>
+
+ 
+<br><br><br><br><br><br>
